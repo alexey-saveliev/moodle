@@ -1,0 +1,63 @@
+version: '2'
+services:
+  mariadb:
+    image: 'mariadb:10.5'
+    container_name: db
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+      MYSQL_DATABASE: moodle
+      MYSQL_USER: moodle
+      MYSQL_PASSWORD: moodlePassword
+      MARIADB_CHARACTER_SET: utf8mb4
+      MARIADB_COLLATE: utf8mb4_unicode_ci
+    networks:
+      - LAN
+    volumes:
+      - ./volumes/mysql:/var/lib/mysql
+
+  moodle:
+    image: 'bitnami/moodle:3'
+    container_name: moodle
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.instat-http.entrypoints=http"
+      - "traefik.http.routers.instat-http.rule=Host(`MOODLE-HOSTNAME§`)"
+      - "traefik.http.routers.instat.entrypoints=https"
+      - "traefik.http.routers.instat.rule=Host(`MOODLE-HOSTNAME`)"
+      - "traefik.http.routers.instat.tls.certresolver=LetsEncrypt"
+      - "traefik.http.services.instat.loadbalancer.server.port=8080"
+    environment:
+      BITNAMI_DEBUG: "true"
+      MOODLE_SITE_NAME: "Moodle Test"
+      MOODLE_USERNAME: admin
+      MOODLE_PASSWORD: P@ssw0rd
+      MOODLE_EMAIL: your@email.here
+      MARIADB_HOST: db
+      MARIADB_PORT_NUMBER: 3306
+      MOODLE_DATABASE_USER: moodle
+      MOODLE_DATABASE_NAME: moodle
+      MOODLE_DATABASE_PASSWORD: moodlePassword
+      ALLOW_EMPTY_PASSWORD: "no"
+      PHP_ENABLE_OPCACHE: "yes"
+      #      MOODLE_SKIP_BOOTSTRAP: "yes"
+      #    ports:
+      #      - '80:8080'
+      #      - '443:8443'
+    networks:
+      - LAN
+      - traefik
+    volumes:
+      - ./volumes/moodle:/bitnami
+    depends_on:
+      - mariadb
+
+networks:
+  LAN:
+  traefik:
+    external: true
+
+volumes:
+  mariadb_data:
+    driver: local
+  moodle_data:
+    driver: local
